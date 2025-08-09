@@ -57,6 +57,8 @@
             transition: color 0.3s;
         }
     </style>
+    <!-- 1. Memuat library SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
@@ -71,7 +73,7 @@
         <div id="status-message">Menyalakan kamera...</div>
     </div>
 
-    <!-- Tidak ada lagi face-api.js, hanya logika sederhana -->
+    <!-- Logika JavaScript Aplikasi -->
     <script>
         const video = document.getElementById('webcam');
         const statusMessage = document.getElementById('status-message');
@@ -90,7 +92,11 @@
             } catch (err) {
                 console.error("Error mengakses webcam:", err);
                 statusMessage.textContent = 'Error: Tidak dapat mengakses kamera.';
-                alert('Tidak dapat mengakses kamera. Pastikan Anda memberikan izin.');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Kamera Error',
+                    text: 'Tidak dapat mengakses kamera. Pastikan Anda memberikan izin.'
+                });
             }
         }
 
@@ -131,13 +137,22 @@
 
                     const data = await response.json();
 
-                    // Jika wajah dikenali, hentikan sementara dan tampilkan alert
+                    // Jika wajah dikenali, hentikan sementara dan tampilkan SweetAlert
                     if (data.recognized) {
                         clearInterval(captureInterval); // Hentikan pengiriman gambar
                         const name = data.data.name;
                         const nik = data.data.nik;
                         statusMessage.textContent = `Registrasi Berhasil, ${name}!`;
-                        alert(`Registrasi Berhasil!\n\nNama: ${name}\nNIK: ${nik}`);
+                        
+                        // SweetAlert untuk notifikasi sukses
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Registrasi Berhasil!',
+                            html: `Selamat datang, <strong>${name}</strong><br>NIK: ${nik}`,
+                            timer: 4000,
+                            timerProgressBar: true,
+                            showConfirmButton: false
+                        });
                         
                         // Mulai lagi setelah 5 detik
                         setTimeout(() => {
@@ -154,6 +169,14 @@
                 } catch (error) {
                     console.error('Error saat mengirim data ke API:', error);
                     statusMessage.textContent = 'Gagal terhubung ke server.';
+                    
+                    // SweetAlert untuk notifikasi error koneksi
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Koneksi Gagal',
+                        text: 'Terjadi kesalahan saat menghubungi server. Silakan coba lagi nanti.'
+                    });
+                    
                     // Hentikan loop jika ada error koneksi
                     clearInterval(captureInterval);
                 }

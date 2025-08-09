@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrasi Wajah Otomatis</title>
+    <style>
+        /* CSS untuk tampilan yang lebih baik */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f2f5;
+            margin: 0;
+            color: #333;
+        }
+        #container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+            max-width: 90%;
+            text-align: center;
+        }
+        h1 {
+            color: #1a2a45;
+            margin-bottom: 10px;
+        }
+        p {
+            color: #555;
+            margin-bottom: 20px;
+        }
+        #webcam-container {
+            position: relative;
+            width: 640px;
+            height: 480px;
+            max-width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 5px solid #ddd;
+        }
+        #webcam {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #status-message {
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: #007bff;
+            font-weight: bold;
+            height: 30px;
+            transition: color 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="container">
+        <h1>Registrasi Event</h1>
+        <!-- Paragraf diubah, tidak lagi meminta NIK -->
+        <p>Posisikan wajah Anda di depan kamera untuk registrasi otomatis.</p>
+        
+        <div id="webcam-container">
+            <video id="webcam" width="640" height="480" autoplay muted playsinline></video>
+        </div>
+        
+        <div id="status-message">Memuat model AI, harap tunggu...</div>
+    </div>
+
+    <!-- 1. Memuat library face-api.js dari CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+    <!-- 2. Logika JavaScript Aplikasi -->
+    <script>
+        const video = document.getElementById('webcam');
+        const statusMessage = document.getElementById('status-message');
+        // Input NIK sudah tidak ada, jadi kita hapus
+        // const nikInput = document.getElementById('nik-input');
+
+        // Variabel untuk mengontrol logika
+        let detectionInterval;
+        let isProcessing = false; // Mencegah pengiriman ganda
+        const API_URL = 'https://dc733196dae8.ngrok-free.app/recognize/'; // URL API Anda
+
+        // Fungsi untuk memuat model deteksi wajah
+        async function loadModels() {
+            try {
+                await faceapi.nets.tinyFaceDetector.loadFromUri('./models');
+                statusMessage.textContent = 'Arahkan wajah Anda ke kamera...';
+                startDetection();
+            } catch (e) {
+                statusMessage.textContent = 'Error: Gagal memuat model AI.';
+                console.error("Gagal memuat model face-api:", e);
+            }
+        }
+
+        // Fungsi untuk memulai kamera
+        async function startWebcam() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error("Error mengakses webcam:", err);
+                statusMessage.textContent = 'Error: Tidak dapat mengakses kamera.';
+                alert('Tidak dapat mengakses kamera. Pastikan Anda memberikan izin.');
+            }
+        }
+
+        // Fungsi untuk memulai deteksi wajah secara periodik
+        function startDetection() {
+            detectionInterval = setInterval(async () => {
+                if (isProcessing) return; 
+
+                const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320 }));
+
+                if (detections) {
+                    statusMessage.textContent = 'Wajah terdeteksi! Tahan posisi...';
+                    clearInterval(detectionInterval); 
+                    
+                    setTimeout(() => {
+                        captureAndSend();
+                    }, 1500);
+
+                } else {
+                    statusMessage.textContent = 'Arahkan wajah Anda ke kamera...';
+                }
+            }, 1000); 
+        }
+
+        // Fungsi untuk mengambil gambar dan mengirim ke API
+        async function captureAndSend() {
+            isProcessing = true;
+            // Tidak perlu lagi mengambil NIK dari input
+            // const nik = nikInput.value;
+
+            statusMessage.textContent = 'Mengidentifikasi wajah...';
+
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(async (blob) => {
+                const formData = new FormData();
+                // Hanya mengirim file gambar, tanpa NIK
+                formData.append('file', blob, 'registration_face.jpg');
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        body: formData,
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || `Server error: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    // Logika baru untuk menangani respons dari API
+                    if (data.recognized) {
+                        const name = data.data.name;
+                        const nik = data.data.nik;
+                        statusMessage.textContent = `Registrasi Berhasil, ${name}!`;
+                        alert(`Registrasi Berhasil!\n\nNama: ${name}\nNIK: ${nik}`);
+                    } else {
+                        statusMessage.textContent = 'Wajah tidak terdaftar.';
+                        alert(`Registrasi Gagal. Pesan: ${data.message}`);
+                    }
+
+                } catch (error) {
+                    console.error('Error saat mengirim data ke API:', error);
+                    statusMessage.textContent = 'Gagal terhubung ke server.';
+                    alert(`Terjadi kesalahan saat menghubungi server: ${error.message}`);
+                } finally {
+                    statusMessage.textContent = 'Siap untuk registrasi berikutnya dalam 5 detik...';
+                    setTimeout(() => {
+                        isProcessing = false;
+                        startDetection(); 
+                    }, 5000);
+                }
+            }, 'image/jpeg', 0.95);
+        }
+
+        window.addEventListener('load', () => {
+            startWebcam();
+        });
+
+        video.addEventListener('play', () => {
+            loadModels();
+        });
+    </script>
+
+</body>
+</html>

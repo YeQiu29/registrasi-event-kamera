@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrasi Wajah Otomatis</title>
+    <title>Registrasi Wajah Otomatis (GPU-Powered)</title>
     <style>
-        /* CSS untuk tampilan yang lebih baik */
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             display: flex;
@@ -63,47 +62,30 @@
 
     <div id="container">
         <h1>Registrasi Event</h1>
-        <!-- Paragraf diubah, tidak lagi meminta NIK -->
         <p>Posisikan wajah Anda di depan kamera untuk registrasi otomatis.</p>
         
         <div id="webcam-container">
             <video id="webcam" width="640" height="480" autoplay muted playsinline></video>
         </div>
         
-        <div id="status-message">Memuat model AI, harap tunggu...</div>
+        <div id="status-message">Menyalakan kamera...</div>
     </div>
 
-    <!-- 1. Memuat library face-api.js dari CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-
-    <!-- 2. Logika JavaScript Aplikasi -->
+    <!-- Tidak ada lagi face-api.js, hanya logika sederhana -->
     <script>
         const video = document.getElementById('webcam');
         const statusMessage = document.getElementById('status-message');
-        // Input NIK sudah tidak ada, jadi kita hapus
-        // const nikInput = document.getElementById('nik-input');
-
-        // Variabel untuk mengontrol logika
-        let detectionInterval;
-        let isProcessing = false; // Mencegah pengiriman ganda
-        const API_URL = 'https://dc733196dae8.ngrok-free.app/recognize/'; // URL API Anda
-
-        // Fungsi untuk memuat model deteksi wajah
-        async function loadModels() {
-            try {
-                await faceapi.nets.tinyFaceDetector.loadFromUri('./models');
-                statusMessage.textContent = 'Arahkan wajah Anda ke kamera...';
-                startDetection();
-            } catch (e) {
-                statusMessage.textContent = 'Error: Gagal memuat model AI.';
-                console.error("Gagal memuat model face-api:", e);
-            }
-        }
+        
+        let captureInterval;
+        let isProcessing = false; 
+        // --- GANTI URL INI DENGAN ALAMAT LENGKAP NGROK BACKEND ANDA ---
+        // Contoh: 'https://abcdef123.ngrok-free.app/recognize/'
+        const API_URL = 'https://dc733196dae8.ngrok-free.app/recognize/'; 
 
         // Fungsi untuk memulai kamera
         async function startWebcam() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
             } catch (err) {
                 console.error("Error mengakses webcam:", err);
@@ -112,33 +94,18 @@
             }
         }
 
-        // Fungsi untuk memulai deteksi wajah secara periodik
-        function startDetection() {
-            detectionInterval = setInterval(async () => {
-                if (isProcessing) return; 
-
-                const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320 }));
-
-                if (detections) {
-                    statusMessage.textContent = 'Wajah terdeteksi! Tahan posisi...';
-                    clearInterval(detectionInterval); 
-                    
-                    setTimeout(() => {
-                        captureAndSend();
-                    }, 1500);
-
-                } else {
-                    statusMessage.textContent = 'Arahkan wajah Anda ke kamera...';
-                }
-            }, 1000); 
+        // Fungsi untuk memulai pengiriman gambar secara periodik
+        function startCaptureLoop() {
+            statusMessage.textContent = 'Sistem siap. Posisikan wajah Anda.';
+            captureInterval = setInterval(() => {
+                if (isProcessing) return;
+                captureAndSend();
+            }, 2000); // Kirim gambar setiap 2 detik
         }
 
         // Fungsi untuk mengambil gambar dan mengirim ke API
         async function captureAndSend() {
             isProcessing = true;
-            // Tidak perlu lagi mengambil NIK dari input
-            // const nik = nikInput.value;
-
             statusMessage.textContent = 'Mengidentifikasi wajah...';
 
             const canvas = document.createElement('canvas');
@@ -149,8 +116,7 @@
 
             canvas.toBlob(async (blob) => {
                 const formData = new FormData();
-                // Hanya mengirim file gambar, tanpa NIK
-                formData.append('file', blob, 'registration_face.jpg');
+                formData.append('file', blob, 'webcam_capture.jpg');
 
                 try {
                     const response = await fetch(API_URL, {
@@ -165,37 +131,43 @@
 
                     const data = await response.json();
 
-                    // Logika baru untuk menangani respons dari API
+                    // Jika wajah dikenali, hentikan sementara dan tampilkan alert
                     if (data.recognized) {
+                        clearInterval(captureInterval); // Hentikan pengiriman gambar
                         const name = data.data.name;
                         const nik = data.data.nik;
                         statusMessage.textContent = `Registrasi Berhasil, ${name}!`;
                         alert(`Registrasi Berhasil!\n\nNama: ${name}\nNIK: ${nik}`);
+                        
+                        // Mulai lagi setelah 5 detik
+                        setTimeout(() => {
+                            isProcessing = false;
+                            startCaptureLoop();
+                        }, 5000);
+
                     } else {
-                        statusMessage.textContent = 'Wajah tidak terdaftar.';
-                        alert(`Registrasi Gagal. Pesan: ${data.message}`);
+                        // Jika tidak dikenali, langsung lanjutkan proses
+                        statusMessage.textContent = 'Posisikan wajah Anda dengan jelas...';
+                        isProcessing = false;
                     }
 
                 } catch (error) {
                     console.error('Error saat mengirim data ke API:', error);
                     statusMessage.textContent = 'Gagal terhubung ke server.';
-                    alert(`Terjadi kesalahan saat menghubungi server: ${error.message}`);
-                } finally {
-                    statusMessage.textContent = 'Siap untuk registrasi berikutnya dalam 5 detik...';
-                    setTimeout(() => {
-                        isProcessing = false;
-                        startDetection(); 
-                    }, 5000);
+                    // Hentikan loop jika ada error koneksi
+                    clearInterval(captureInterval);
                 }
-            }, 'image/jpeg', 0.95);
+            }, 'image/jpeg', 0.9); // Kualitas gambar bisa sedikit diturunkan untuk pengiriman lebih cepat
         }
 
+        // Jalankan semua setelah halaman dimuat
         window.addEventListener('load', () => {
             startWebcam();
         });
 
-        video.addEventListener('play', () => {
-            loadModels();
+        // Saat video siap diputar, mulai loop pengiriman gambar
+        video.addEventListener('canplay', () => {
+            startCaptureLoop();
         });
     </script>
 

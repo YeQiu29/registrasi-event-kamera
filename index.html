@@ -3,14 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrasi Wajah Otomatis (GPU-Powered)</title>
+    <title>Registrasi Wajah Otomatis</title>
     <link rel="stylesheet" href="css/style.css">
-    <!-- 1. Memuat library SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
-    <div id="container">
+    <!-- BARU: Modal Tutorial -->
+    <div id="tutorial-modal">
+        <div class="tutorial-content">
+            <div id="tutor-animation">
+                <!-- SVG untuk animasi kepala -->
+                <svg viewBox="0 0 150 150" id="head-svg">
+                    <g id="head-group">
+                        <!-- Kepala -->
+                        <path d="M75,20 C45,20 20,45 20,75 C20,105 45,130 75,130 C105,130 130,105 130,75 C130,45 105,20 75,20 Z" fill="#e0e0e0"/>
+                        <!-- Leher -->
+                        <path d="M65,125 L65,140 L85,140 L85,125 Z" fill="#e0e0e0"/>
+                        <!-- Mata Kiri -->
+                        <circle cx="55" cy="70" r="5" fill="#333"/>
+                        <!-- Mata Kanan -->
+                        <circle cx="95" cy="70" r="5" fill="#333"/>
+                        <!-- Mulut -->
+                        <path d="M60,100 Q75,110 90,100" stroke="#333" stroke-width="3" fill="none"/>
+                    </g>
+                </svg>
+            </div>
+            <h2>Selamat Datang!</h2>
+            <p>Untuk hasil terbaik, posisikan wajah Anda di dalam oval dan gerakkan kepala sedikit ke kiri dan kanan.</p>
+            <button id="start-scan-btn">Mengerti, Mulai Pindai</button>
+        </div>
+    </div>
+
+    <!-- Konten utama aplikasi (awalnya tersembunyi) -->
+    <div id="container" style="display: none;">
         <h1>Registrasi Event</h1>
         <p>Posisikan wajah Anda di depan kamera untuk registrasi otomatis.</p>
         
@@ -21,18 +47,31 @@
         <div id="status-message">Menyalakan kamera...</div>
     </div>
 
-    <!-- Logika JavaScript Aplikasi -->
     <script>
         const video = document.getElementById('webcam');
         const statusMessage = document.getElementById('status-message');
+        const startScanBtn = document.getElementById('start-scan-btn');
+        const tutorialModal = document.getElementById('tutorial-modal');
+        const mainContainer = document.getElementById('container');
         
         let captureInterval;
-        let isProcessing = false; 
-        
-        // --- URL SUDAH DIPERBARUI DENGAN ALAMAT NGROK ANDA ---
-        const API_URL = 'https://8c7ed6189371.ngrok-free.app/recognize/'; 
+        let isProcessing = false;
+        const API_URL = 'https://8c7ed6189371.ngrok-free.app/recognize/';
 
-        // Fungsi untuk memulai kamera
+        // --- MODIFIKASI JAVASCRIPT ---
+
+        // 1. Tambahkan event listener untuk tombol "Mulai Pindai"
+        startScanBtn.addEventListener('click', () => {
+            // Sembunyikan modal tutorial dan tampilkan kontainer utama
+            tutorialModal.style.display = 'none';
+            mainContainer.style.display = 'flex';
+            
+            // Baru mulai kamera setelah tombol ditekan
+            startWebcam();
+        });
+
+        // 2. Fungsi startWebcam dan lainnya tetap sama,
+        //    namun tidak akan dipanggil sampai tombol ditekan.
         async function startWebcam() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -48,16 +87,14 @@
             }
         }
 
-        // Fungsi untuk memulai pengiriman gambar secara periodik
         function startCaptureLoop() {
             statusMessage.textContent = 'Sistem siap. Posisikan wajah Anda.';
             captureInterval = setInterval(() => {
                 if (isProcessing) return;
                 captureAndSend();
-            }, 2000); // Kirim gambar setiap 2 detik
+            }, 2000);
         }
 
-        // Fungsi untuk mengambil gambar dan mengirim ke API
         async function captureAndSend() {
             isProcessing = true;
             statusMessage.textContent = 'Mengidentifikasi wajah...';
@@ -85,14 +122,12 @@
 
                     const data = await response.json();
 
-                    // Jika wajah dikenali, hentikan sementara dan tampilkan SweetAlert
                     if (data.recognized) {
-                        clearInterval(captureInterval); // Hentikan pengiriman gambar
+                        clearInterval(captureInterval);
                         const name = data.data.name;
                         const nik = data.data.nik;
                         statusMessage.textContent = `Registrasi Berhasil, ${name}!`;
                         
-                        // SweetAlert untuk notifikasi sukses
                         Swal.fire({
                             icon: 'success',
                             title: 'Registrasi Berhasil!',
@@ -102,14 +137,12 @@
                             showConfirmButton: false
                         });
                         
-                        // Mulai lagi setelah 5 detik
                         setTimeout(() => {
                             isProcessing = false;
                             startCaptureLoop();
                         }, 5000);
 
                     } else {
-                        // Jika tidak dikenali, langsung lanjutkan proses
                         statusMessage.textContent = 'Posisikan wajah Anda dengan jelas...';
                         isProcessing = false;
                     }
@@ -118,25 +151,23 @@
                     console.error('Error saat mengirim data ke API:', error);
                     statusMessage.textContent = 'Gagal terhubung ke server.';
                     
-                    // SweetAlert untuk notifikasi error koneksi
                     Swal.fire({
                         icon: 'error',
                         title: 'Koneksi Gagal',
                         text: 'Terjadi kesalahan saat menghubungi server. Silakan coba lagi nanti.'
                     });
                     
-                    // Hentikan loop jika ada error koneksi
                     clearInterval(captureInterval);
                 }
-            }, 'image/jpeg', 0.9); // Kualitas gambar bisa sedikit diturunkan untuk pengiriman lebih cepat
+            }, 'image/jpeg', 0.9);
         }
 
-        // Jalankan semua setelah halaman dimuat
-        window.addEventListener('load', () => {
-            startWebcam();
-        });
+        // 3. Hapus pemanggilan startWebcam() dari 'load' event
+        // window.addEventListener('load', () => {
+        //     startWebcam(); // INI DIHAPUS
+        // });
 
-        // Saat video siap diputar, mulai loop pengiriman gambar
+        // 4. Event listener 'canplay' tetap ada untuk memulai loop setelah video siap
         video.addEventListener('canplay', () => {
             startCaptureLoop();
         });

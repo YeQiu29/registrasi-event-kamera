@@ -4,59 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrasi Wajah Otomatis (GPU-Powered)</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #f0f2f5;
-            margin: 0;
-            color: #333;
-        }
-        #container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 30px;
-            background-color: white;
-            border-radius: 12px;
-            box-shadow: 0 6px 18px rgba(0,0,0,0.1);
-            max-width: 90%;
-            text-align: center;
-        }
-        h1 {
-            color: #1a2a45;
-            margin-bottom: 10px;
-        }
-        p {
-            color: #555;
-            margin-bottom: 20px;
-        }
-        #webcam-container {
-            position: relative;
-            width: 640px;
-            height: 480px;
-            max-width: 100%;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 5px solid #ddd;
-        }
-        #webcam {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        #status-message {
-            margin-top: 20px;
-            font-size: 1.2em;
-            color: #007bff;
-            font-weight: bold;
-            height: 30px;
-            transition: color 0.3s;
-        }
-    </style>
+    <link rel="stylesheet" href="css/style.css">
     <!-- 1. Memuat library SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>

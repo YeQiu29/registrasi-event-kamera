@@ -1,0 +1,107 @@
+/* General Body Styling */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f0f2f5;
+    margin: 0;
+    color: #333;
+}
+
+/* Main Container */
+#container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+    max-width: 90%;
+    text-align: center;
+}
+
+/* Headings and Paragraphs */
+h1 {
+    color: #1a2a45;
+    margin-bottom: 10px;
+}
+p {
+    color: #555;
+    margin-bottom: 20px;
+}
+
+/* Webcam Container */
+#webcam-container {
+    position: relative; /* Diperlukan untuk overlay */
+    width: 640px;
+    height: 480px;
+    max-width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 5px solid #ddd;
+    /* Menambahkan bayangan untuk efek kedalaman */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Video Element */
+#webcam {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* --- PANDUAN WAJAH --- */
+#webcam-container::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 45%;  /* Lebar oval (sekitar 288px) */
+    height: 65%; /* Tinggi oval (sekitar 312px) */
+    border: 4px solid rgba(255, 255, 255, 0.8);
+    border-radius: 50%; /* Membuat bentuk menjadi oval sempurna */
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); /* Efek 'cut-out' */
+    pointer-events: none; /* Agar tidak menghalangi interaksi */
+}
+
+/* --- ANIMASI SCANNING --- */
+#webcam-container::before {
+    content: '';
+    position: absolute;
+    top: 17.5%; /* Posisi awal garis scanner (disesuaikan dengan tinggi oval) */
+    left: 27.5%;  /* Posisi awal garis scanner (disesuaikan dengan lebar oval) */
+    width: 45%;
+    height: 5px;
+    background: linear-gradient(90deg, transparent, rgba(0, 191, 255, 0.7), transparent); /* Warna biru modern */
+    border-radius: 5px;
+    animation: scan 3s infinite ease-in-out;
+    box-shadow: 0 0 10px rgba(0, 191, 255, 0.8);
+    pointer-events: none;
+}
+
+@keyframes scan {
+    0% {
+        transform: translateY(0);
+    }
+    50% {
+        /* Bergerak ke bawah sejauh tinggi oval */
+        transform: translateY(280px); 
+    }
+    100% {
+        transform: translateY(0);
+    }
+}
+
+/* Status Message Styling */
+#status-message {
+    margin-top: 20px;
+    font-size: 1.2em;
+    color: #007bff;
+    font-weight: bold;
+    height: 30px;
+    transition: color 0.3s;
+}
